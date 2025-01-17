@@ -1,0 +1,21 @@
+>--此符号意味着可以将前一部分的输出赋予给后一部分
+      echo hi > asdf 意味着在cat asdf后会输出hi，由于使用echo 此时的输出为stdout，输出文本
+    也可以直接使用>，这意味着直接将前一部分的输出赋予给后一部分，此时的输出可以是任意形式输出取决于前一部分的输出
+      /challenge/run > myflag，此时直接使用 cat myflag即可输出run的输出，此时的run为一个程序
+grep--查找
+    格式为 grep [查找内容] [查找路径] grep 'pwn.college' /tmp/data.txt, grep会打印符合此字符的所有符合项，并且要求区分大小写
+    -i表示不区分大小写 grep -i 'pwn.college' /tmp/data.txt
+    -v表示反向查找，即查找不包含此字符的所有项 grep -v 'pwn.college' /tmp/data.txt
+    -w 精确匹配，只匹配完全相同的字符，grep -w 'pwn.college' /tmp/data.txt，即只匹配pwn.college
+|--此符号也可用于查找，通过格式 /challenge/run | grep pwn.college 即可查找run的输出中是否包含pwn.college
+
+/challenge/run 2>&1 | grep "flag" -- 此指令会同时把run输出标准错误 并且定向到标准输出 后合并输出给管道 | 用于grep查找操作
+有时候需要传输结果从一个文件到另一个文件的同时，希望可以存在另一文件可以查看输出结果，此时使用
+     --tee 分流：/challenge/pwn | tee intercepet_data | /challenge/college
+    此命令格式 可以将pwn的输出同时传输给college和intercepet_data，intercepet_data和college的一样都可以查看pwn的输出
+echo HACK | tee >(rev) --此命令分为两部分，首先echo会先产生输出为stdout 输出为HACK，之后这部分输出会通过管道传输给tee，此时遇到>()命令，则将HACK作为rev的输入
+     /challenge/hack | tee >( /challenge/the ) >( /challenge/planet ) --此命令更加简洁明了，输出/challenge/hack后将其输出通过管道和tee分别将此输出作为后两个文件或者程序的输入 后依次运行程序或文件
+| 和 >-- 区别 |只能处理标准输出，而>可以处理人数输出，无论是标准输出 标准错误（stdout stderr）
+
+--/challenge/hack 2> >(/challenge/the) > >(/challenge/planet) --将hack的输出通过2> 提取为stderr标准错误 后通过>()作为the的标准输入进行操作。
+    后通过 > 提取hack的标准输出 stdout，后通过 >()作为planet的输入进行操作
