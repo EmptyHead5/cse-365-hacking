@@ -1,0 +1,10 @@
+在linux中存在一系列文档操作类命令/格式
+    /challenge/challenge --giveflag：此方式给予了在challenge目录下的challenge程序一个参数为 --givenflag
+    /challenge/challenge --printfile /flag ：对于这个格式而言，需要在challenge程序下基于一个有值的printffile参数，这个值就是/flag，此时的/flag存在一个值
+手册命令
+    man：打开手册页，通过在手册页输入/ 进行查询操作
+    man man：打开详细手册页
+    man -k 名称：找到与名称相关的命令或工具
+    man challenge：打开challenge的手册页
+    文件名 --help：查看文件的帮助文档
+    help 内置命令：查看内置命令的帮助文档

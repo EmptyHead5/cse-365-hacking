@@ -1,0 +1,13 @@
+此项目主要运用与文件的搜索
+   在linux中存在 *来表示一个/几个/或零个字符
+    --对于file_a file_b file_c来说，file_*可以匹配到所有的文件
+    --对于file_ab,file_bc,file_ac来说，file_*可以匹配到所有的文件
+   存在?来表示一个字符
+    --对于file_a file_b file_c来说，file_?可以匹配到所有的文件,但是file_?无法匹配到file_ab,file_bc,file_ac,因为file_?只能匹配到一个字符
+   存在[]来表示一个字符集
+    --[]为？的一种特殊形式，不再是任一字符，而是可以通过输入到[]的字符来进行匹配
+    --对于file_a file_b file_c来说，file_[ab]可以匹配到file_a和file_b
+当程序需要指定路径下的多个文件作为参数时，可以使用通配符来进行匹配
+    例如: /challenge/run /challenge/files/file_[bash] 此方法将绝对路径下的file_b,file_a,file_s,file_h文件作为参数传递给run程序
+[]--不单单可以用于匹配相关文件，还可以通过
+[!]--来排除相应文件名所对于的文件
