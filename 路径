@@ -1,0 +1,5 @@
+--export PATH=$(pwd):$PATH 
+    export--修改环境变量
+    PATH=$PATH:$(pwd) --将当前目录添加到PATH变量中
+    PATH=$(pwd):$PATH --先使用当前目录中的可执行文件
+    --export PATH=$(pwd):$PATH：修改环境变量，先使用当前目录可执行文件

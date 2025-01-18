@@ -1,3 +1,17 @@
+在程序输出成功称为标准输出使用数字1和stdout表示
+在程序输出失败称为标准错误输出使用数字2和stderr表示
+| 和 >-- 区别 |只能处理标准输出(stdout)， | 管道，将一个命令的输出传递给另一命令。管道的左边和右边必须是可执行的命令，不能是文件或其他静态对象
+      而>可以处理输出，无论是标准输出 标准错误（stdout stderr）
+        注意如果只有'>' 终端会默认为 1> 也就是标准输出，此时如果传入的结果同时具有标准输出和标准错误输出，则会打印错误输出到终端，之后存放标准输出到指定文件
+        反之亦然，如果只有'2>' 会将标准错误输出存放在指定文件，而标准输出则会打印到终端
+
+| 和 > 的应用 以及>和>>的区别
+      cat test1.txt | grep "hello" > test2.log
+          这就是一个很好解释的例子，将test1.txt的内容通过管道传递给grep，然后将grep的输出重定向到test2.log文件中
+            如果test2.log文件不存在，则会创建一个新的文件，如果文件存在，则会覆盖文件内容，即使有cat也不会打印到终端，而是需要查看test2.log文件
+      cat test1.txt | grep "hello" >> test2.log
+          >>--追加输出，如果文件存在，则会在文件末尾追加内容，如果文件不存在，则会创建一个新文件，不会覆盖
+
 >--此符号意味着可以将前一部分的输出赋予给后一部分
       echo hi > asdf 意味着在cat asdf后会输出hi，由于使用echo 此时的输出为stdout，输出文本
     也可以直接使用>，这意味着直接将前一部分的输出赋予给后一部分，此时的输出可以是任意形式输出取决于前一部分的输出
@@ -10,12 +24,20 @@ grep--查找
 |--此符号也可用于查找，通过格式 /challenge/run | grep pwn.college 即可查找run的输出中是否包含pwn.college
 
 /challenge/run 2>&1 | grep "flag" -- 此指令会同时把run输出标准错误 并且定向到标准输出 后合并输出给管道 | 用于grep查找操作
+    2>&1 --意味着将标准输出和标准错误输出都作为后一命令的输入通过管道传给grep
+
 有时候需要传输结果从一个文件到另一个文件的同时，希望可以存在另一文件可以查看输出结果，此时使用
      --tee 分流：/challenge/pwn | tee intercepet_data | /challenge/college
     此命令格式 可以将pwn的输出同时传输给college和intercepet_data，intercepet_data和college的一样都可以查看pwn的输出
 echo HACK | tee >(rev) --此命令分为两部分，首先echo会先产生输出为stdout 输出为HACK，之后这部分输出会通过管道传输给tee，此时遇到>()命令，则将HACK作为rev的输入
      /challenge/hack | tee >( /challenge/the ) >( /challenge/planet ) --此命令更加简洁明了，输出/challenge/hack后将其输出通过管道和tee分别将此输出作为后两个文件或者程序的输入 后依次运行程序或文件
-| 和 >-- 区别 |只能处理标准输出，而>可以处理人数输出，无论是标准输出 标准错误（stdout stderr）
 
 --/challenge/hack 2> >(/challenge/the) > >(/challenge/planet) --将hack的输出通过2> 提取为stderr标准错误 后通过>()作为the的标准输入进行操作。
     后通过 > 提取hack的标准输出 stdout，后通过 >()作为planet的输入进行操作
+
+
+> 和 >> 在与echo结合使用
+  -echo >  第一行输出
+  -echo >> 第二行输出
+  echo /chllenge/pwn > x.sh ; echo /challenge/college >> x.sh ; bash x.sh 
+    -- 命令会在x.sh种写入两行，第一行为/challenge/pwn，第二行为/challenge/college，之后执行bash x.sh即可执行x.sh中的命令
