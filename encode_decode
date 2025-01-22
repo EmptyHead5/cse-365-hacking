@@ -1,0 +1,66 @@
+ # type: ignore
+encode和decodee并不困难，
+    
+    例子：
+    
+import sys
+
+
+def reverse_string(s):
+    return s[::-1]
+
+
+print("Enter the password:")
+entered_password = sys.stdin.buffer.read1()
+correct_password = b"@W\x88\xa8\xc0a\x89\xe1"
+
+print(f"Read {len(entered_password)} bytes.")
+
+
+entered_password = entered_password[::-1]
+entered_password = bytes.fromhex(entered_password.decode("l1"))
+
+
+if entered_password == correct_password:
+    print("Congrats! Here is your flag:")
+    print(open("/flag").read().strip())
+else:
+    print("Incorrect!")
+    sys.exit(1)
+
+
+首先应该使用 cat /challenge/runme 去取得类似于上面的描述
+    后当我们的到类似的代码后总是给正确密码，并且给出相应的输入密码被处理的流程
+这个代码实例中，输入的密码会被反转后通过latin-1 decode
+    首先需要使用ipython，打开linux终端中的内置python解释器
+       之后使用逆向思维，既然输入的密码会被反转后decode，那么我们拥有最终密码后，就可以先decode后反转
+         之后就可以得到输入密码
+text = b'@W\x88\xa8\xc0a\x89\xe1' //的格式为byte
+text= text.hex()
+text = text.encode("l1")          // encode是要求输入str 后 输出为byte
+text = text[::-1]
+print(text)
+b'1e98160c8a887504'
+ 这时候就已经得到需要正确输入的输入密码
+使用liunx终端中的printf命令，将输入密码转换为对应的字符
+print "1e98160c8a887504" | /challenge/RuntimeError
+
+当然可以继续使用ipython进行decode操作
+
+这时候就不用倒叙了，直接decode即可
+text = b'1e98160c8a887504'
+text = text[::-1]
+text = text.decode("l1")
+text = bytes.fromhex(text) // 这里是将十六进制字符串转为字节对象(即byte)
+print(text)
+
+在第一次的encode的过程中，也是因为代码提供了  bytes.fromhex 会导致输入密码被从十六位字符串转为 bytes
+    所以才要先将给出的 text= b'@W\x88\xa8\xc0a\x89\xe1' 使用hex()转为十六进制字符串
+之后使用encode("l1"),使用latin-1 编码，将字符串转为bytes
+    之后就可以进行反转操作
+        之后就可以得到输入密码
+            之后就可以得到flag
+
+
+这类题型的难点就是如何反向思维去encode或者decode密码，并且了解encode和decode的()内分别要求什么样的参数类型
+并且题目中bytes.fromhex()的使用，也是一个需要注意的点，他会将括号内的参数转为bytes
