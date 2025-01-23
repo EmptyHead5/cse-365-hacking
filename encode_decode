@@ -43,7 +43,7 @@ print(text)
 b'1e98160c8a887504'
  这时候就已经得到需要正确输入的输入密码
 使用liunx终端中的printf命令，将输入密码转换为对应的字符
-print "1e98160c8a887504" | /challenge/RuntimeError
+print "1e98160c8a887504" | /challenge/runme
 
 当然可以继续使用ipython进行decode操作
 
