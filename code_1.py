@@ -80,3 +80,22 @@ final_output = process.stdout.read()
 print(final_output)
 
 print("All questions answered. Exiting.")
+
+
+
+
+
+
+
+
+levels = [
+    "PHwKSlGW", "drWIDeyF", "NduQlqWk", "RuornavU", "NFEdGxER", "IhxbYEEX", "nxZuHAXf",
+    "mmqwXxct", "ZYzpHYic", "xdwKJgZk", "yPxiDPsm", "jvwfUGEC", "HXxffQLr", "IYRZRDeu",
+    "MKSaXxxy", "hZjksUon", "LyrZgMVI", "OxRJtihV", "ikGUmfKW", "eUQGiiWK", "RVzFydTR",
+    "XvahDnGf", "aWIxyUuO", "HnfIilTx", "UeozAExE", "nJoYjwlz", "fZccsdcS", "yfSUslnT",
+    "DrfiwLWA", "wUhdksap", "NdncTPPa", "IgpYIYfw", "hjvUermZ", "aeOskznr", "bIuzjjsb",
+    "nXEInfIZ", "yxIzFlXR", "bCwIyqSX", "XGqLodbH", "ucNyVngy"
+]
+
+# Assigning security levels in descending order (first is highest sensitivity)
+level_rank = {level: rank for rank, level in enumerate(levels[::-1], start=1)}

@@ -1,0 +1,79 @@
+import subprocess
+    --在某些情况下，手动输入并不能很快的解决问题就像pwn挑战所展示的那样，所以就需要使用到subprocess
+    pe=subprocess.Popen(
+        "/challenge/run,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        endcode="utf-8"
+    )
+    --这个为标准形式一般情况下都要包括，此方法为/challenge/run建立了管道能够让脚本去读取和输入
+
+    line=pe.subprocess.stdout.readline().strip()
+        --此用法可以让line去读取以行文字，每次运行都读取下一行
+    process.stdin.write()
+    process.stdin.flush()
+        --这两个语句一般同时使用
+        --write会给/challenge/run写入语句
+        --flush会刷新
+        这样就和人类回答问题一样，通过前面的循环语句，依次回答问题后刷新
+
+
+from pwn import process
+    --来自pwntools第三方库作用等同于subprocess但是更简单
+    p=process("/challenge/run")
+        --确定要被管道操作的文件
+    output = p.recvuntil(b"5 Categories:\n").decode()
+    --会一直查找知道找到5 Categories:\n，此方法为pwntool内置方法，会一直记录文本直到“5 Categories:\n”
+
+
+
+
+
+
+
+
+import re
+    --正则表达式，用于模糊和精确表达，虽然python具有内置的find(),但是find只能准确而不是模糊查找 
+    例子：
+        question = re.compile(
+          r"Q \d+\. Can a Subject with level ([A-Z]+) and categories \{(.*?)\} (read|write) an Object with level ([A-Z]+) and categories \{(.*?)\}\?"
+        )
+        --\d+\ 表示decimal数字，+表示增加，可以表示任一大小的数字，但是不能被空格隔开，隔开则为两个数字
+        --([A-Z]+)  ()表示捕获组，可以在后面通过group()捕捉，但是同样的也是只能捕捉一个任意长度的单词，但是不能被空格隔开
+        --\{(.*?)\}  \{\} 因为大括号在正则表达式内会被使用所以加上\来表示不会被使用，正常表达为大括号
+            .占位符，可以表示任何字符
+            *累加，前方的符号可以出现多次
+            ？取消贪婪，从小到多
+            (.*?)--匹配任一字符，并且从1开始计算
+    sub_name,sub_cat,operation,obj_name,obj_cat=match.groups()
+    前方变量名字的数字，是通过正则表达式re.compile()内的捕获组确定的，并且一一对应
+        search()
+        --search(pattern,text)
+            搜索指定正则表达式patter，在text中的符合
+        --pattern.search(text)
+            搜索指定正则表达式patter，在text中的符合
+            
+
+
+output = p.recvuntil(b"5 Categories:\n").decode()
+
+# Extract levels
+level_pattern = re.compile(r'40 Levels.*?:\s*\n((?:[a-zA-Z]+\n)+)')
+match_levels = level_pattern.search(output)
+levels = match_levels.group(1).strip().split("\n") if match_levels else []
+level_map = {level.strip(): rank for rank, level in enumerate(reversed(levels), start=1)}
+
+--这五行必须结合理解
+    通过output = p.recvuntil(b"5 Categories:\n").decode()，阅读所有文本直到"5 Categories:\n"
+    level_pattern = re.compile(r'40 Levels.*?:\s*\n((?:[a-zA-Z]+\n)+)')
+        # 40 Levels (first is highest aka more sensitive):
+        --规定正则表达式模式，设置捕获组
+            捕获组通过固定文本40 Levels进行位置固定
+            .*? --多个字符累加，非贪婪
+            :--固定字符直到这里停止
+            \s*\n--空白字符换行符
+            ((?:[a-zA-Z]+\n)+)--捕获组
+                --(?) 非捕获组，增加这个就可以让所有符合要求的字符组都被储存在同一个字符内
+                --[a-zA-Z]+\n 匹配内容为所有大小写字母累加之后换行
+re.compile(r'40 Levels .*?:\n((?:[a-zA-Z]+\n)+)')

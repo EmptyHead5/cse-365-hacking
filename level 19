@@ -1,0 +1,66 @@
+from pwn import process
+import re
+import subprocess
+
+
+
+# Launch the challenge process
+p = process("/challenge/run")
+# 打开进程
+
+# Grab the challenge output
+output = p.recvuntil(b"5 Categories:\n").decode()
+
+# Extract levels
+level_pattern = re.compile(r'40 Levels .*?:\n((?:[a-zA-Z]+\n)+)')
+
+match_levels = level_pattern.search(output)
+levels = match_levels.group(1).strip().split("\n") if match_levels else []
+level_map = {level.strip(): rank for rank, level in enumerate(reversed(levels), start=1)}
+
+print(levels)
+print(level_map)
+print(match_levels)
+
+# Extract categories
+category_pattern = re.compile(r'5 Categories:\s*\n((?:[A-Z]+\n)+)')
+match_categories = category_pattern.search(output)
+categories = match_categories.group(1).strip().split("\n") if match_categories else []
+
+# Compile question pattern
+question_pattern = re.compile(
+    r"Q \d+\. Can a Subject with level (\w+) and categories \{(.*?)\} (read|write) an Object with level (\w+) and categories \{(.*?)\}\?"
+)
+questionCount=0
+questionMax=128
+# Process each question dynamically
+while questionCount<questionMax:
+    line = p.recvline().decode().strip()
+    print(line)
+    match = question_pattern.match(line)
+
+    if not match:
+        continue
+
+    sub_level, sub_cat, operation, obj_level, obj_cat = match.groups()
+    sub_rank = level_map[sub_level]
+    obj_rank = level_map[obj_level]
+    sub_categories = set(sub_cat.split(", ")) if sub_cat else set()
+    obj_categories = set(obj_cat.split(", ")) if obj_cat else set()
+
+    # Determine access permission
+    if operation == "read":
+        allowed = sub_rank >= obj_rank and obj_categories.issubset(sub_categories)
+    elif operation == "write":
+        allowed = sub_rank <= obj_rank and sub_categories.issubset(obj_categories)
+    else:
+        allowed = False
+
+    # Send answer
+    p.sendline("yes" if allowed else "no")
+    questionCount+=1
+# Read final output (flag)
+flag = p.recvall(timeout=2).decode().strip()
+print("Final Output:", flag)
+
+p.close()
