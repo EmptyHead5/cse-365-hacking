@@ -1,0 +1,72 @@
+set-register
+    --使用vi test.asm，文件内编写汇编语言
+    --nasm -f elf64 test.asm -o test.o //生成.o文件
+    --ld test.o -o test  //生成可执行文件
+    --/challenge/run ./test  //运行可执行文件
+  imul and mul
+    --imul为有符号乘法，mul为无符号乘法
+  div
+    --这是x86位的汇编语言十分特别,会默认将rax设置位被除数和商，rdx设置为余数
+    --div rsi ， div 只需要接受一个参数，表示除数
+    --其结果会被保存在rax中，余数会被保存在rdx中
+    mov rax, rdi
+    xor rax, rax
+    div rsi
+     --这个代码段的意思是将rdi的值赋给rax，然后将rax清零，然后将rdi除以rsi，结果保存在rax中，余数保存在rdx中
+  
+    -xor rax, rax
+     mov rax, rdi
+     div rsi
+     mov rax, rdx
+      --xor保证rax寄存器内的数字位0
+      --mov rax, rdi将rdi的值赋给rax
+      --div rsi将rdi除以rsi，结果保存在rax中，余数保存在rdx中
+      --mov rax, rdx将rdx的值赋给rax
+寄存器分析
+  --rax有自带低32位寄存器eax
+    --eax有自带低16位寄存器ax
+    --ax有自带高八位寄存器ah和低八位寄存器al
+  --rdi有32位寄存器edi
+    --edi有16位寄存器di
+    --di只有低八位寄存器dil
+  --rsi有32位寄存器esi
+    --esi有16位寄存器si
+    --si只有低八位寄存器sil
+
+除法但是快速运算
+  --如果除数是2的n次方，那么就能得到最后的商和余数就是被除数的高n位和低n位
+
+byte-extraction
+  --mov rax, rdi
+    shr rax, 32
+    shl rax, 56
+    shr rax, 56
+      --此时需要提取的rdi的第5位，所以右移32位，然后左移56位，然后右移56位，就能得到rdi的第5位
+        并且清楚其他位的数值
+crash-course-check-even
+  --and rdi, 1
+    xor rax, rax
+    xor rdi, 1
+    or rax, rdi  mov和or都可以用于赋值但是or更高效
+      --xor rax, rax将rax清零,使用异或操作，xor表示相同则为0，不同则为1
+mov的使用
+  --mov rax，rdi
+    --这个操作的意思是将rdi的值赋给rax
+  --mov rax,[rdi]
+    --这个操作的意思是将rdi的值作为地址，将地址内的值赋给rax
+  --mov rax,[0x12345678]
+    --这个操作的意思是将0x12345678的值作为地址，将地址内的值赋给rax
+  --mov [0x12345678],rax
+    --这个操作的意思是将rax的值赋给0x12345678的地址
+  --错误示范：mov [rax], 0xdeadbeef000013337
+    --不要使用直接将大数据仿佛地址的操作，会导致程序崩溃
+      --正确示范：mov rax, 0xdeadbeef000013337
+                  mov [rax], rax
+    --首先将较大数据存放在寄存器处理后，再防入想要存入的地址
+
+  
+内存大小分布名称
+  -byte = 1 byte= 8 bits //字节
+  -word = 2 bytes = 16 bits //字
+  -double word = 4 bytes = 32 bits //双字
+  -quad word = 8 bytes = 64 bits //四字
