@@ -1,3 +1,5 @@
+语言基于x86的汇编语言构成
+
 set-register
     --使用vi test.asm，文件内编写汇编语言
     --nasm -f elf64 test.asm -o test.o //生成.o文件
@@ -5,8 +7,9 @@ set-register
     --/challenge/run ./test  //运行可执行文件
   imul and mul
     --imul为有符号乘法，mul为无符号乘法
-  div
+  div除法逻辑
     --这是x86位的汇编语言十分特别,会默认将rax设置位被除数和商，rdx设置为余数
+      --需要明白这些寄存器是被固定默认设置在这里的其中包括rax的被除数和商，rdx的余数
     --div rsi ， div 只需要接受一个参数，表示除数
     --其结果会被保存在rax中，余数会被保存在rdx中
     mov rax, rdi
@@ -22,6 +25,8 @@ set-register
       --mov rax, rdi将rdi的值赋给rax
       --div rsi将rdi除以rsi，结果保存在rax中，余数保存在rdx中
       --mov rax, rdx将rdx的值赋给rax
+    
+    
 寄存器分析
   --rax有自带低32位寄存器eax
     --eax有自带低16位寄存器ax
@@ -63,10 +68,40 @@ mov的使用
       --正确示范：mov rax, 0xdeadbeef000013337
                   mov [rax], rax
     --首先将较大数据存放在寄存器处理后，再防入想要存入的地址
-
+  --mov rax, [rdi]
+    mov rbx, [rdi+8]
+    add rax, rbx
+    mov [rsi], rax
+      --所增加的八个地址偏移量的八所指的是八个字节，所以是64位
   
 内存大小分布名称
   -byte = 1 byte= 8 bits //字节
   -word = 2 bytes = 16 bits //字
   -double word = 4 bytes = 32 bits //双字
   -quad word = 8 bytes = 64 bits //四字
+寄存器内所指的64位32位8位都是值得bits，即为0和1
+
+栈
+  --栈是一种先进后出的数据结构
+  --push rax
+    --将rax的值压入栈，推入栈后不会影响rax的值，只是将rax的值复制一份压入栈
+  --pop rax
+    --将栈顶的值弹出到rax
+
+jump跳跃
+  -绝对跳跃
+    --mov rax, [0x40300]
+      jmp rax
+        --再绝对跳转（跳转到特定地址）需要先将目标地址放入寄存器中，后才能够使用jmp命令。
+  跳转中存在多个编译器所使用的多种不同跳转方式，此时只使用nasm编译器
+    --section .text
+      global _start
+      _start:
+      jmp jump_target
+      times 0x51 nop --这个是nasm特有的跳转方式也是根据题意确定的
+      jump_target:
+      pop rdi
+      mov rax, 0x403000
+      jmp rax
+        --题目要求要跳转到距离当前jump的x51个字节的地方，所以需要使用times 0x51 nop
+        --如果不使用而是直接跳跃到指定标签的话，编译器会根据前面代码的长度来计算跳跃的位置，而不是所需的0x51个字节
