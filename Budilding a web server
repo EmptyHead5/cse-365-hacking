@@ -1,0 +1,39 @@
+寄存器	参数
+rdi	第 1 个参数
+rsi	第 2 个参数
+rdx	第 3 个参数
+rcx	第 4 个参数
+r8	第 5 个参数
+r9	第 6 个参数
+
+
+level1
+    .intel_synatax noprefix
+    .globl _start
+
+    .section .text
+
+    _start:
+        mov rdi, 0
+        mov rax, 60
+        syscall
+    as -o server.o server.s
+    ld -o server.o server
+level2：creat a socket
+    int socket(int domain, int type, int protocol);
+    .intel_synatax noprefix
+    .globl _start
+
+    .section .text
+
+    _start:
+        mov rdi, 2
+        mov rsi, 1
+        mov rdx, 0
+        //传递socket的参数
+        mov rax, 41
+        //告诉系统调用具体哪个函数(socket)
+        syscall
+        mov rdi, rax
+        mov rax, 60
+        syscall

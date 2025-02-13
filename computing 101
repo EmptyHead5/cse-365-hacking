@@ -105,3 +105,124 @@ jump跳跃
       jmp rax
         --题目要求要跳转到距离当前jump的x51个字节的地方，所以需要使用times 0x51 nop
         --如果不使用而是直接跳跃到指定标签的话，编译器会根据前面代码的长度来计算跳跃的位置，而不是所需的0x51个字节
+
+
+
+在 x86-64 的 System V ABI（应用二进制接口）调用约定下，函数的前六个整数或指针类型的参数按如下方式传递：
+
+寄存器	参数
+rdi	第 1 个参数
+rsi	第 2 个参数
+rdx	第 3 个参数
+rcx	第 4 个参数
+r8	第 5 个参数
+r9	第 6 个参数
+
+most_common_byte(src_addr, size):
+  i = 0
+  while i <= size-1:
+    curr_byte = [src_addr + i]
+    [stack_base - curr_byte] += 1 //stack_base指的是栈顶地址，栈向下生长，所以需要rsp+偏移量
+
+    i += 1
+
+  b = 0
+  max_freq = 0
+  max_freq_byte = 0
+  while b <= 0xff:
+    if [stack_base - b] > max_freq:
+      max_freq = [stack_base - b]
+      max_freq_byte = b
+    b += 1
+
+  return max_freq_byte
+
+    mov rbp, rsp
+    sub rsp, 0x1000
+    xor r8, r8
+  loop:
+    cmp r8, rsp
+    jg next
+      mov dl, byte [rdi+r8]
+      add byte [rsp+rdl], 1
+      inc r8
+  next:
+    xor rcx, rcx
+    xor rdx, rdx
+    xor rax, rax
+    cmp rcx, oxff
+    loop2:
+      cmp [rsp+rcx], rdx
+      jg  max_freq
+      jmp inc
+    max_freq:
+      mov rdx, [rsp+rcx]
+      mov rax, rcx
+      jmp inc //这里具有争议可以无视
+    inc:
+      inc rcx
+      jmp loop2
+  done:
+    mov rsp, rbp
+    ret 
+  //设置栈基地址为rbp，系统的栈基地址为rsp，所以需要将rsp赋值为rbp
+  //sub rsp, 0x1000表示在栈上分配0x1000的空间，如果申请了额外空间则必须释放
+    mov rsp,rbp
+    如果直接push则还需要pop，如果直接mov则需要mov回去
+    ret表示释放栈空间
+
+
+mov rbp, rsp
+  --将栈的基地址赋值给rbp使用，这样可以在后面直接使用栈，因为提前保存了栈的基地址
+xor r8, r8
+  --r8代表i，所以需要清零
+loop:
+  --循环开始
+  cmp r8, rsi //原伪代码需要-1，所以这里有待考虑
+    --比较r8和rsi的值
+  jg next
+    --如果r8大于rsi则跳转到next
+    mov dl, byte [rdi+r8]
+      --将rdi+r8的值赋给dl，因为前后的寄存器的位数不同，所以需要使用byte
+    add byte [rso+rdl], 1
+      --将rso+rdl的值加1, dl和rdl其实是一个寄存器但是位数不同
+    inc r8
+      --r8加1
+next:
+  xor rcx, rcx
+    --清零rcx 
+  xor rdx, rdx
+    --清零rdx
+  xor rax, rax
+    --清零rax
+  loop2:
+    cmp rcx, 0xff
+      --比较rcx和0xff
+    jg done
+        --如果rcx大于0xff则跳转到done
+    cmp [rsp+rcx], rdx
+      --比较[rsp+rcx]和rdx
+    jg max_freq
+      --如果[rsp+rcx]大于rdx则跳转到max_freq
+    jmp inc
+      --小于则跳转到inc
+    max_freq:
+      mov rdx, [rsp+rcx]
+        --将[rsp+rcx]的值赋给rdx
+      mov rax, rcx
+        --将rcx的值赋给rax
+      inc rcx
+        --rcx加1,此处有争议
+      jmp loop2
+        --跳转到loop2
+    inc:
+      inc rcx
+        --rcx加1
+      jmp loop2
+        --跳转到loop2
+  done:
+    mov rsp, rbp
+      --将rbp的值赋给rsp，确保栈的基地址不变
+    ret
+      --返回，释放栈空间  
+    这里可以作为标准格式进行与开头操作呼应
