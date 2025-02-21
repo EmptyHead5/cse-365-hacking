@@ -6,6 +6,10 @@ rcx	第 4 个参数
 r8	第 5 个参数
 r9	第 6 个参数
 
+https://x64.syscall.sh/
+
+xx86_64 系统可能会对r11寄存器有某些不可预知的影响，避免使用
+
 
 level1
     .intel_synatax noprefix
@@ -37,3 +41,835 @@ level2：creat a socket
         mov rdi, rax
         mov rax, 60
         syscall
+level3： bind
+socket(AF_INET, SOCK_STREAM, IPPROTO_IP) = 3
+bind(3, {sa_family=AF_INET, sin_port=htons(<bind_port>), sin_addr=inet_addr("<bind_address>")}, 16) = 0
+ 所以bind其实需要三个参数，第一个是socket的返回值，第二个是sockaddr_in结构体的指针，第三个是sockaddr_in结构体的大小
+ 其中sockaddr_in结构体包括：sa_family, sin_port, sin_addr（以此为地址族，端口号，ip地址，和一个填充）
+            .intel_syntax noprefix
+            .globl _start
+
+            .section .data
+            sockaddr_in:
+                .word 2 //sa_family=AF_INET
+                .word 0X5000 //port=80 端口号采用大端序
+                .long 0x00000000 //ip= 0.0.0.0 采用小端序
+                .quad 0 //填充
+
+            .section .text
+            _start:
+            mov rdi, 2  //AF_INET
+            mov rsi, 1 //SOCK_STREAM
+            mov rdx, 0  //IPPROTO_IP
+            mov rax, 41 //socket
+            syscall
+           
+            mov r12, rax //保存socket返回值,为了避免后面使用别的调用导致rax内的值发生改变，应该提前存放          
+            mov rdi, r12 //返回3则成功
+            lea rsi,[rip+sockaddr_in] //rip寄存器保存着当前命令的地址，lea是取地址
+            mov rdx, 16 //为bind开辟16个字节的空间
+
+            mov rax, 49
+            syscall
+
+
+            xor rdi, rdi
+            mov rdi, 0
+            mov rax, 60
+            syscall
+
+延申
+    --listen(int sockfd, int backlog)  sockfd值得是socket返回的值
+        mov rdi, r12
+        mov rsi, 10
+        mov rax , 50
+        syscall
+    --accept(int sockfd, struct sockaddr *_Nullable restrict addr , socklen_t *_Nullable restrict addrlen)
+        mov rdi, r12    
+        mov rsi, 0
+        mov rdx, 0 //因为没有使用所以先不考虑
+        mov rax, 43
+        syscall      
+
+level 6
+    .intel_syntax noprefix
+.globl _start
+
+.section .data
+sockaddr_in:
+		.word 2
+		.word 0X5000
+		.long 0x00000000
+		.quad 0
+buffer_in:
+		.skip 256
+http_response:
+		.ascii "HTTP/1.0 200 OK\r\n\r\n"
+.section .text
+_start:
+	mov rdi, 2
+	mov rsi, 1
+	mov rdx, 0
+	mov rax, 41
+	syscall
+	mov r12, rax
+
+	mov rdi, r12
+	lea rsi,[rip+sockaddr_in]
+
+	mov rdx, 16
+	mov rax, 49
+	syscall
+	
+	mov rdi, r12
+	mov rsi, 0
+	mov rax, 50
+	syscall
+	
+	mov rdi, r12
+	mov rsi, 0
+	mov rdx, 0
+	mov rax, 43
+	syscall 
+
+	mov r13, rax
+
+    //read      read(int fd, void *buf, size_t count); fd所指的是上一个系统调用返回的文件描述符，一般存放在rax中
+	mov rdi, r13
+	lea rsi, [rip+buffer_in]
+	mov rdx, 256
+	mov rax,0
+	syscall	
+	
+    //write   write(int fd, const void *buf, size_t count);
+	mov rdi, r13
+	lea rsi, [rip+http_response] //rip表示当前指令地址，lea表示取地址，将当前地址加上偏移量后的地址赋值给rsi，lea只是取地址，不会改变内存中的值 x86-64中想要使用.data中的数据，需要使用lea指令，而不是直接用变量名
+	mov rdx, 19
+	mov rax, 1
+	syscall
+	
+    //close  close(int fd);
+	mov rdi, r13
+	mov rax, 3
+	syscall
+		
+	
+	xor rdi, rdi
+	mov rdi, 0
+	mov rax, 60
+	syscall
+
+
+level7
+        .intel_syntax noprefix
+.globl _start
+
+.section .data
+		.equ O_RDONLY, 0
+sockaddr_in:
+		.word 2
+		.word 0X5000
+		.long 0x00000000
+		.quad 0
+buffer_in:
+		.skip 256
+http_response:
+		.ascii "HTTP/1.0 200 OK\r\n\r\n"
+path:
+		.ascii "/home/hacker/example.txt\0"
+server_path:
+		.ascii "/tmp/tmphopqj2q9\0"
+.section .text
+_start:
+	mov rdi, 2
+	mov rsi, 1
+	mov rdx, 0
+	mov rax, 41
+	syscall
+	mov r12, rax
+
+	mov rdi, r12
+	lea rsi,[rip+sockaddr_in]
+	mov rdx, 16
+	mov rax, 49
+	syscall
+	
+	mov rdi, r12
+	mov rsi, 0
+	mov rax, 50
+	syscall
+	
+	mov rdi, r12
+	mov rsi, 0
+	mov rdx, 0
+	mov rax, 43
+	syscall 
+	
+	mov r13, rax
+	
+        //从 socket 读取 HTTP 请求
+	mov rdi, r13
+	lea rsi, [rip+buffer_in]
+	mov rdx, 256
+	mov rax, 0
+	syscall 
+	//////////////////
+        //难点为此处的loop
+	lea rdi, [rip+buffer_in]
+	mov rsi, 4
+loop:
+	mov al, byte ptr [rdi+rsi]
+	cmp al, ' '
+	je done 
+	inc rsi
+	jmp loop
+done:
+	dec rsi
+	inc rsi
+	mov byte ptr [rdi+rsi], 0
+/////////////////////////////////////////
+	//打开文件
+	lea rdi, [rip+buffer_in+4]
+	mov rsi, O_RDONLY
+	mov rax, 2
+	syscall 
+	
+	mov r14, rax
+	
+    //从文件读取内容
+	mov rdi, r14
+	lea rsi, [rip+buffer_in]
+	mov rdx, 256
+	mov rax,0
+	syscall	
+	mov r15, rax
+	
+    //关闭文件
+	mov rdi, r14
+	mov rax, 3
+	syscall
+	
+    //发送 HTTP 响应头，或者说是写入到服务器
+	mov rdi, r13
+	lea rsi, [rip+http_response]
+	mov rdx, 19
+	mov rax, 1
+	syscall
+
+    //发送文件内容
+	mov rdi, r13
+	lea rsi, [rip+buffer_in]
+	mov rdx, r15
+	mov rax, 1
+	syscall
+	
+	mov rdi, r13
+	mov rax, 3
+	syscall
+		
+	
+	xor rdi, rdi
+	mov rdi, 0
+	mov rax, 60
+	syscall
+
+
+level9：
+.intel_synatax noprefix
+.globl _start
+
+.section .data
+.equ O_RDONLY, 0
+sockaddr_in:
+.word 2
+.word 0X5000
+.long 0x00000000
+.quad 0
+parent_in:
+.word 2
+.word 0x901F
+.long 0x00000000
+.quad 0
+buffer_in:
+
+.skip 256
+http_response:
+.ascii "HTTP/1.0 200 OK\r\n\r\n"
+path:
+.ascii "/home/hacker/example.txt\0"
+
+.section .text
+_start:
+mov rdi, 2
+mov rsi, 1
+mov rdx, 0
+mov rax, 41
+syscall
+mov r12, rax
+
+mov rdi, r12
+lea rsi,[rip+sockaddr_in]
+
+mov rdx, 16
+mov rax, 49
+syscall
+
+mov rdi, r12
+mov rsi, 0
+mov rax, 50
+syscall
+accept_loop:
+mov rax, r12
+mov rsi, 0
+mov rdx, 0
+mov rax, 43
+syscall	
+mov r8, rax	
+
+
+mov rax, 57
+syscall
+cmp rax, 0
+nop
+je child_process
+
+mov rdi, r8
+mov rbx, r8
+mov rax, 3
+syscall
+je accept_loop
+
+
+child_process:
+mov rdi, r12
+mov rax, 3
+syscall
+
+mov rdi, r8
+lea rsi, [rip+buffer_in]
+mov rdx, 256
+mov rax, 0
+syscall 
+
+lea rdi, [rip+buffer_in]
+mov rsi, 4
+loop:
+mov al, byte ptr [rdi+rsi]
+cmp al, ' '
+je done 
+inc rsi
+jmp loop
+done:
+dec rsi
+inc rsi
+mov byte ptr [rdi+rsi], 0
+
+
+lea rdi, [rip+buffer_in+4]
+mov rsi, O_RDONLY
+mov rax, 2
+syscall 
+
+mov r14, rax
+
+mov rdi, r14
+lea rsi, [rip+buffer_in]
+mov rdx, 256
+mov rax,0
+syscall	
+mov r15, rax
+
+mov rdi, r14
+mov rax, 3
+syscall
+
+mov rdi, r8
+lea rsi, [rip+http_response]
+mov rdx, 19
+mov rax, 1
+syscall
+
+mov rdi, r8
+lea rsi, [rip+buffer_in]
+mov rdx, r15
+mov rax, 1
+syscall
+
+mov rdi, r13
+mov rax, 3
+syscall
+
+mov rdi, r12
+mov rsi, 0
+mov rdx, 0
+mov rax, 43
+syscall	 
+
+xor rdi, rdi
+mov rdi, 0
+mov rax, 60
+syscall
+
+level 10
+    .intel_syntax noprefix
+.globl _start
+
+.section .data
+    .equ O_RDONLY, 0
+    sockaddr_in:
+        .word 2
+        .word 0X5000
+        .long 0x00000000
+        .quad 0
+    parent_in:
+        .word 2
+        .word 0x901F
+        .long 0x00000000
+        .quad 0
+    buffer_in:
+        .skip 1024
+    http_response:
+        .ascii "HTTP/1.0 200 OK\r\n\r\n"
+    path:
+        .ascii "/home/hacker/example.txt\0"
+
+.section .text
+_start:
+    mov rdi, 2
+    mov rsi, 1
+    mov rdx, 0
+    mov rax, 41
+    syscall
+    mov r12, rax
+
+    mov rdi, r12
+    lea rsi, [rip+sockaddr_in]
+    mov rdx, 16
+    mov rax, 49
+    syscall
+
+    mov rdi, r12
+    mov rsi, 0
+    mov rax, 50
+    syscall
+
+accept_loop:
+    mov rax, r12
+    mov rsi, 0
+    mov rdx, 0
+    mov rax, 43
+    syscall	
+    mov r8, rax	
+
+    mov rax, 57
+    syscall
+    cmp rax, 0
+    nop
+    je child_process
+
+    mov rdi, r8
+    mov rbx, r8
+    mov rax, 3
+    syscall
+    je accept_loop
+
+    mov rdi, r12
+    mov rsi, 0
+    mov rdx, 0
+    mov rax, 43
+    syscall
+
+child_process:
+    mov rdi, r12
+    mov rax, 3
+    syscall
+
+    mov rdi, r8
+    lea rsi, [rip+buffer_in]
+    mov rdx, 1024
+    mov rax, 0
+    syscall
+    mov rbx, rax
+
+    lea rdi, [rip+buffer_in]
+    
+    mov rsi, 5 
+loop:
+    mov al, byte ptr [rdi+rsi]
+    cmp al, ' '
+    je post
+    inc rsi
+    jmp loop
+
+post:
+    dec rsi
+    inc rsi
+    mov byte ptr [rdi+rsi], 0
+
+    lea rdi, [rip+buffer_in+5]
+	
+    mov rsi, 0x41
+    mov rdx, 0777
+    mov rax, 2
+    syscall
+
+    mov r14, rax
+
+    lea rdi, [rip+buffer_in] 
+    mov rcx, 256
+
+finding:
+    cmp rcx, 4
+    jl not_found
+    cmp byte ptr [rdi], 0x0d
+    jne no_delim
+    cmp byte ptr [rdi+1], 0x0a
+    jne no_delim
+    cmp byte ptr [rdi+2], 0x0d
+    jne no_delim
+    cmp byte ptr [rdi+3], 0x0a
+    jne no_delim
+    lea rsi, [rdi+4]
+    jmp delim_found
+
+no_delim:
+    inc rdi
+    dec rcx
+    jmp finding
+not_found:
+    jmp exit
+get_len:
+	xor rbx, rbx
+len:
+	mov al, byte ptr [rdi+rbx]
+ 	cmp al, 0x5C
+ 	je len_done
+	cmp al, 0x00
+	je len_done
+	inc rbx
+	jmp len
+len_done:
+	mov rax, rbx
+	ret
+delim_found:
+
+call get_len
+    sub rax, 4   
+    mov rdx, rax
+    mov rdi, r14
+    mov rax, 1
+    syscall
+	
+    mov rdi, r14
+    mov rax, 3
+    syscall
+
+    mov rdi, r8
+    lea rsi, [rip+http_response]
+    mov rdx, 19
+    mov rax, 1
+    syscall
+
+    
+
+   	
+exit:
+    xor rdi, rdi
+    mov rdi, 0
+    mov rax, 60
+    syscall
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+.intel_syntax noprefix
+.globl _start
+
+.section .text
+
+_start:
+    # Open socket
+    mov rdi, 2
+    mov rsi, 1
+    mov rdx, 0
+    mov rax, 41
+    syscall
+    # Store socket fd in rbx
+    mov rbx, rax
+
+    # Bind socket to address
+    mov rdi, rbx
+    lea rsi, sa_family_t
+    mov rdx, 16
+    mov rax, 49
+    syscall
+
+    # Listen on socket
+    mov rdi, rbx
+    mov rsi, 0
+    mov rax, 50
+    syscall
+
+    accept_jump:
+    # Accept a connection
+    mov rdi, rbx
+    mov rsi, 0
+    mov rdx, 0
+    mov rax, 43
+    syscall
+    # Save new fd for bound connection in r12
+    mov r12, rax
+
+    # Fork the process and let the child do the serving
+    mov rax, 57
+    syscall
+    cmp rax, 0
+    je serve_connection
+    # Close the connection if parent
+    mov rdi, r12
+    mov rax, 3
+    syscall
+    # Then go back to listening
+    jmp accept_jump
+
+    serve_connection:
+    # Close listening socket
+    mov rdi, rbx
+    mov rax, 3
+    syscall
+
+    # Read from the connection
+    mov rdi, r12
+    lea rsi, read_buffer
+    mov rdx, [read_packet_length]
+    mov rax, 0
+    syscall
+
+    # Figure out what file was requested
+    lea rdi, read_buffer
+    mov rsi, 1
+    lea rdx, space
+    call get_nth_substr
+    mov r13, rax
+    lea rdi, read_buffer
+    mov rsi, 2
+    call get_nth_substr
+    mov r14, rax
+    sub r14, 1
+    # r13 = start (exclusive), r14 = end (inclusive)
+    mov rdi, r13
+    mov rsi, r14
+    lea rdx, file_name_buffer
+    call write_to_buf
+    # Filename is now stored in file_name_buffer
+
+    # Check request type
+    mov dil, [read_buffer]
+    # Compare to "G"
+    cmp dil, 0x47
+    # Continue (GET process) if G, otherwise do POST
+    jne POST
+
+    GET:
+        # Open that file
+        lea rdi, file_name_buffer
+        mov rsi, 0
+        mov rdx, 0
+        mov rax, 2
+        syscall
+        mov r13, rax
+
+        # Read file contents
+        mov rdi, r13
+        lea rsi, file_read_buffer
+        mov rdx, 1024
+        mov rax, 0
+        syscall
+
+        # Close the file
+        mov rdi, r13
+        mov rax, 3
+        syscall
+
+        # Write status to connection
+        mov rdi, r12
+        lea rsi, write_static
+        mov rdx, 19
+        mov rax, 1
+        syscall
+
+        # Write file contents to connection
+        lea rdi, file_read_buffer
+        call get_len
+        mov rdx, rax
+        sub rdx, 1
+        mov rdi, r12
+        lea rsi, file_read_buffer
+        mov rax, 1
+        syscall
+
+        jmp exit
+
+    POST:
+        # Open that file
+        lea rdi, file_name_buffer
+        mov rsi, 0x41 # O_CREAT, O_WRONLY
+        mov rdx, 0777
+        mov rax, 2
+        syscall
+        mov r13, rax
+
+        # Get the POST content
+        lea rdi, read_buffer
+        mov rsi, 1
+        lea rdx, double_cr_lf
+        call get_nth_substr
+        mov rsi, rax
+        add rsi, 1
+
+        # Get write length
+        mov rdi, rsi
+        call get_len
+        mov rdx, rax
+        # Get rid of the pesky null byte
+        sub rdx, 1
+        # Write to file
+        mov rdi, r13
+        mov rax, 1
+        syscall
+
+        # Close the file
+        mov rdi, r13
+        mov rax, 3
+        syscall
+
+        # Write status to connection
+        mov rdi, r12
+        lea rsi, write_static
+        mov rdx, 19
+        mov rax, 1
+        syscall
+
+    exit:
+    # Close the connection
+    mov rdi, r12
+    mov rax, 3
+    syscall
+
+    # Sys exit
+    mov rdi, 0
+    mov rax, 60
+    syscall
+
+    # Get the length of a null-terminated string (including the first null byte)
+    # Args:
+    # rdi - buffer we're checking the length of
+    # rax - length
+    get_len:
+        mov rax, 0
+        get_len_loop:
+            # See if rdi + rax-th byte is null
+            mov r10, rdi
+            add r10, rax
+            mov r10, [r10]
+            add rax, 1
+            cmp r10, 0x00
+            jne get_len_loop
+        ret
+
+    # Copy the bytes spanning rdi to rsi to the buffer rdx
+    # rdx MUST BE LONGER THAN rsi - rdi BYTES, rdi MUST BE LESS THAN rsi
+    # Args:
+    # rdi - start (exclusive) of the string we're copying
+    # rsi - end (inclusive) of the string we're copying
+    # rdx - buffer we're copying to
+    # rax - unchanged
+    write_to_buf:
+        write_to_buf_loop:
+            add rdi, 1
+            mov r9, [rdi]
+            mov [rdx], r9
+            add rdx, 1
+            cmp rdi, rsi
+            jne write_to_buf_loop
+        mov byte ptr [rdx], 0x00
+        ret
+
+    # Get address of the (last byte of) the nth occurence of substring in string (occurences must be non-overlapping)
+    # ONLY GUARANTEED TO WORK ON NULL-TERMINATED STRINGS
+    # Args:
+    # rdi - target string address
+    # rsi - n
+    # rdx - substring
+
+    # rax - address of nth character
+    get_nth_substr:
+        # Set rcx (ocurrence counter)
+        mov rcx, 0
+        # Set r10 (to traverse substring)
+        mov r10, rdx
+        check_character_loop:
+            # r9b = character at position
+            mov r9b, [rdi]
+            # If string's terminated, obviously the substring doesn't occur enough times
+            cmp r9b, 0x00
+            je not_enough_occurrences
+            # Step through substring iff r9b = current byte
+            cmp r9b, byte ptr [r10]
+            jne character_not_equal
+                add r10, 1
+                # If we've reached the end of the substring, increment counter and reset r10
+                cmp byte ptr [r10], 0x00
+                jne after_comparison
+                    mov r10, rdx
+                    add rcx, 1
+                    jmp after_comparison
+            character_not_equal:
+                # Reset r10 without adding to count
+                mov r10, rdx
+            after_comparison:
+            # Return address if we've got the nth ocurrence
+            cmp rcx, rsi
+            je match
+            # Otherwise increment and continue
+            add rdi, 1
+            jmp check_character_loop
+        match:
+        mov rax, rdi
+        ret
+        not_enough_occurrences:
+        mov rax, -1
+        ret
+
+.section .data
+    # sockaddr_in struct
+    sa_family_t: .word 2
+    bind_port: .word 0x5000
+    bind_address: .double 0x00000000
+    pad: .byte 0,0,0,0,0,0,0,0
+    # Make empty buffers to read to
+    read_buffer: .space 1024
+    file_name_buffer: .space 1024
+    file_read_buffer: .space 1024
+    # Constants
+    # Yes it's dumb to use a quad word for this, but it simplifies copying it to the register
+    read_packet_length: .quad 0x0000000000000400
+    write_static: .string "HTTP/1.0 200 OK\r\n\r\n"
+    space: .string " "
+    double_cr_lf: .string "\r\n\r\n"
+
+@EmptyHead5
+Comment
+ 
+Leave a comment
+ 
+Footer
+© 2025 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Docs
+Contact
+Manage cookies
+Do not share my personal information

@@ -22,3 +22,48 @@
     --min-parallelism 100 为最小并行数
     --stats-every 5s 为每5s输出一次扫描结果
     -p 31337 为扫描端口
+
+
+level 6 
+    通过tcpdump -i any port 31337 -w <name>.pcap
+        --此方法用于抓包
+    通过wireshark打开pcap文件
+        --analyze->follow->tcp stream
+            --此方法用于查看tcp流，后就能查看到flag
+level 7
+    --此关卡需要将自己ip改为10.0.0.2，当前ip为10.0.0.3
+        --ip addr add 10.0.0.2/24 dev eth0
+            --此方法用于修改ip地址
+        后curl -l 31337
+            --与10.0.0.4进行通信
+level8
+    --此关需要设置抵达路径的ip地址为10.0.0.3，但是只能通过mac地址进行通信
+        --这是因为本关需要通过以太网帧进行通信，而以太网帧是通过mac地址进行通信的
+        --并且由于10.0.0.3设置ipv6地址，所以ping无法通讯
+        --想要得到mac地址需要用 arping -I eth0 -S 10.0.0.2 10.0.0.3
+            --此方法用于获取mac地址
+    --需要像10.0.0.3地址发送一个类型为0xffff的包，此时使用scaoy
+        --conf.iface='eth0' 用于指定网卡
+        pack=Ether(src='指定发送地mac地址',dst='指定目的地mac地址', type=0xffff)  //注意地址别写反了
+        sendp(pack)
+            --此方法用于发送以太网帧
+        --此时由于指定了发送网卡，所以可以发送成功
+level9
+        --与level8类似，但是需要IP proto=0xFF 包含在包内
+        --此时需要使用scapy
+            --pack=Ether(src='指定发送地mac地址',dst='指定目的地mac地址', type=0xffff)/IP(dst="ip地址",proto=0xff)
+            这时我们都是在手动封装包，所以需要使用sendp发送
+            send用于自动封装包
+            sendp用于手动封装包
+            --sendp(pack)
+    有时候遇到奇怪的错误很可能是没用运行/challenge/run 导致没有获得root权限
+
+level10
+        --与level8，level9类似，但是需要增加TCP包
+        --此时需要使用scapy
+            --pack=Ether(src='指定发送地mac地址',dst='指定目的地mac地址', type=0xffff)/IP(dst="ip地址",proto=0xff)/TCP(dport=31337，sport=31337,seq=31337,ack=31337,flags="APRSF")
+            这时我们都是在手动封装包，所以需要使用sendp发送
+            send用于自动封装包
+            sendp用于手动封装包
+            --sendp(pack)
+        --TCP依旧需要ip作为载体，所以需要先封装ip包
